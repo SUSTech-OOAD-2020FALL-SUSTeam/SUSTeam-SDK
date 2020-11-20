@@ -4,12 +4,16 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
+
+import java.util.Collections;
 
 public class SusteamSdk {
 
-    public static final String SERVER = "http://susteam.gogo.moe/api/";
+    public static final String SERVER_HOST = "susteam.gogo.moe";
 
     public static Vertx vertx;
     public static WebClient client;
@@ -17,13 +21,16 @@ public class SusteamSdk {
 
     public static void init(String token) {
         vertx = Vertx.vertx();
-        client = WebClient.create(vertx);
+        client = WebClient.create(
+                vertx,
+                new WebClientOptions().setDefaultHost(SERVER_HOST)
+        );
         SusteamSdk.token = token;
     }
 
     public static Future<Void> isServerOnline() {
         Promise<Void> promise = Promise.promise();
-        HttpRequest<Buffer> request = client.get(SERVER + "token");
+        HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
         request.send(result -> {
             if (result.failed()) {
                 promise.fail(result.cause());
@@ -41,7 +48,7 @@ public class SusteamSdk {
 
     public static Future<User> user() {
         Promise<User> promise = Promise.promise();
-        HttpRequest<Buffer> request = client.get(SERVER + "token");
+        HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
         request.send(result -> {
             if (result.failed()) {
                 promise.fail(result.cause());
@@ -59,8 +66,9 @@ public class SusteamSdk {
         return promise.future();
     }
 
+
 //    public static void main(String[] args) {
-//        SusteamSdk.init("aaaaa");
+//        SusteamSdk.init("yinpeiqi");
 //
 //        SusteamSdk.isServerOnline().onComplete(it -> {
 //            if (it.succeeded()) {
@@ -74,5 +82,6 @@ public class SusteamSdk {
 //            System.out.println(it.getUsername());
 //        });
 //    }
+
 
 }

@@ -107,10 +107,8 @@ public class SusteamSdk {
                 promise.fail("token invalid");
                 return;
             }
-            System.out.println(result.result().body());
             User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
             String username = user.getUsername();
-            System.out.println("/api/save/" + username + "/" + gameId);
             final MultipartForm form = MultipartForm.create();
             try {
                 form.textFileUpload("txt-file", file.getName(), file.getAbsolutePath(), "text/plain");
@@ -139,38 +137,38 @@ public class SusteamSdk {
     }
 
 
-//    public static Future<Void> load() {
-//
-//        Promise<Void> promise = Promise.promise();
-//        HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
-//        request.send(result -> {
-//            if (result.failed()) {
-//                promise.fail(result.cause());
-//                return;
-//            }
-//            Boolean token = result.result().bodyAsJsonObject().getBoolean("token");
-//            if (!token) {
-//                promise.fail("token invalid");
-//                return;
-//            }
-//
-//            User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
-//            String username = user.getUsername();
-//            String filename = username + "-" + gameId;
-//            System.out.println("/api/save/" + username + "/" + gameId);
-//            HttpRequest<Buffer> loadRequest = client.get("/api/save/" + username + "/" + gameId);
-//
-//            loadRequest.send(res -> {
-//                if (res.failed()) {
-//                    promise.fail(res.cause());
-//                    return;
-//                }
-//                System.out.println(res.result().body());
-//            });
-//            promise.complete();
-//        });
-//        return promise.future();
-//    }
+    public static Future<Void> load(String fileName) {
+
+        Promise<Void> promise = Promise.promise();
+        HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
+        request.send(result -> {
+            if (result.failed()) {
+                promise.fail(result.cause());
+                return;
+            }
+            Boolean token = result.result().bodyAsJsonObject().getBoolean("token");
+            if (!token) {
+                promise.fail("token invalid");
+                return;
+            }
+
+            User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
+            String username = user.getUsername();
+            HttpRequest<Buffer> loadRequest =
+                    client.get("/api/save/" + username + "/" + gameId + "/" + fileName)
+                          .bearerTokenAuthentication(SusteamSdk.token);
+
+            loadRequest.send(res -> {
+                System.out.println(res.result().body());
+                if (res.failed()) {
+                    promise.fail(res.cause());
+                    return;
+                }
+            });
+            promise.complete();
+        });
+        return promise.future();
+    }
 
 
     public static void main(String[] args) {
@@ -184,14 +182,15 @@ public class SusteamSdk {
             }
         });
 
-        SusteamSdk.user().onSuccess(it -> {
-            System.out.println(it.getUsername());
-        });
-        SusteamSdk.getGame(10);
+//        SusteamSdk.user().onSuccess(it -> {
+//            System.out.println(it.getUsername());
+//        });
+//        SusteamSdk.getGame(10);
         SusteamSdk.save(new File("C:\\Users\\yinpe\\IdeaProjects\\SUSTeam-SDK\\testfile.txt"))
                 .onComplete(it -> {
                     System.out.println("success");
                 });
+        SusteamSdk.load("test001-10");
     }
 
 

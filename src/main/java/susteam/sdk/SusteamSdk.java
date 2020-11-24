@@ -4,15 +4,14 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.file.FileSystem;
-import io.vertx.core.file.OpenOptions;
-import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.multipart.MultipartForm;
-
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 
 
 public class SusteamSdk {
@@ -137,9 +136,9 @@ public class SusteamSdk {
     }
 
 
-    public static Future<Void> load(String fileName) {
+    public static Future<File> load(String fileName) {
 
-        Promise<Void> promise = Promise.promise();
+        Promise<File> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
         request.send(result -> {
             if (result.failed()) {
@@ -159,11 +158,22 @@ public class SusteamSdk {
                           .bearerTokenAuthentication(SusteamSdk.token);
 
             loadRequest.send(res -> {
-                System.out.println(res.result().body());
                 if (res.failed()) {
                     promise.fail(res.cause());
                     return;
                 }
+                File dir = new File(System.getProperty("java.io.tmpdir")+"susteam/sdk/"+gameId);
+                dir.mkdirs();
+                File file = new File(dir + "/" + fileName);
+
+                try {
+                    file.createNewFile();
+                    Files.write(file.toPath(),res.result().bodyAsBuffer().getBytes(), StandardOpenOption.WRITE);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    promise.fail("file error");
+                }
+//                System.out.println(res.result().body());
             });
             promise.complete();
         });
@@ -171,27 +181,27 @@ public class SusteamSdk {
     }
 
 
-    public static void main(String[] args) {
-        SusteamSdk.init("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ", 10);
-
-        SusteamSdk.isServerOnline().onComplete(it -> {
-            if (it.succeeded()) {
-                System.out.println("server is online");
-            } else {
-                System.out.println("server is not online");
-            }
-        });
-
+//    public static void main(String[] args) {
+//        SusteamSdk.init("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ", 10);
+//
+//        SusteamSdk.isServerOnline().onComplete(it -> {
+//            if (it.succeeded()) {
+//                System.out.println("server is online");
+//            } else {
+//                System.out.println("server is not online");
+//            }
+//        });
+//
 //        SusteamSdk.user().onSuccess(it -> {
 //            System.out.println(it.getUsername());
 //        });
 //        SusteamSdk.getGame(10);
-        SusteamSdk.save(new File("C:\\Users\\yinpe\\IdeaProjects\\SUSTeam-SDK\\testfile.txt"))
-                .onComplete(it -> {
-                    System.out.println("success");
-                });
-        SusteamSdk.load("test001-10");
-    }
+//        SusteamSdk.save(new File("C:\\Users\\yinpe\\IdeaProjects\\SUSTeam-SDK\\testfile.txt"))
+//                .onComplete(it -> {
+//                    System.out.println("success");
+//                });
+//        SusteamSdk.load("test001-10");
+//    }
 
 
 }

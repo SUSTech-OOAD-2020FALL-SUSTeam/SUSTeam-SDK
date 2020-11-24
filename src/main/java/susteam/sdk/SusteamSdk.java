@@ -12,6 +12,8 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.multipart.MultipartForm;
 
+import java.io.File;
+
 
 public class SusteamSdk {
 
@@ -31,9 +33,10 @@ public class SusteamSdk {
         SusteamSdk.token = token;
         SusteamSdk.gameId = gameId;
     }
+
     public static Future<Game> getGame(int gameId) {
         Promise<Game> promise = Promise.promise();
-        HttpRequest<Buffer> request = client.get("/api/game/"+gameId);
+        HttpRequest<Buffer> request = client.get("/api/game/" + gameId);
         request.send(result -> {
             if (result.failed()) {
                 promise.fail(result.cause());
@@ -41,11 +44,10 @@ public class SusteamSdk {
             }
             //TODO can't get Chinese character
             System.out.println(result.result().bodyAsJsonObject());
-            if(result.result().bodyAsJsonObject().getBoolean("success")) {
+            if (result.result().bodyAsJsonObject().getBoolean("success")) {
                 Game game = GameKt.toGame(result.result().bodyAsJsonObject().getJsonObject("game"));
                 promise.complete(game);
-            }
-            else {
+            } else {
                 promise.fail(result.result().bodyAsJsonObject().getString("error"));
             }
         });
@@ -91,7 +93,7 @@ public class SusteamSdk {
     }
 
 
-    public static Future<Void> save(String path, String filename) {
+    public static Future<Void> save(File file) {
 
         Promise<Void> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
@@ -108,31 +110,30 @@ public class SusteamSdk {
             System.out.println(result.result().body());
             User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
             String username = user.getUsername();
-            FileSystem fs = vertx.fileSystem();
-            fs.open(filename, new OpenOptions(), fileRes -> {
-                if (fileRes.succeeded()) {
-                    System.out.println("/api/save/" + username + "/" + gameId);
-                    final MultipartForm form = MultipartForm.create();
-                    form.textFileUpload("txt-file", filename,path+filename,"text/plain");
-                    client
-                            .post("/api/save/" + username + "/" + gameId)
-                            .bearerTokenAuthentication(SusteamSdk.token)
-                            .sendMultipartForm(form, res -> {
-                                System.out.println(res.result().body());
-                                if (res.succeeded()) {
-                                    if( res.result().bodyAsJsonObject().getBoolean("success") ) {
-                                        promise.complete();
-                                    }
-                                    else {
-                                        promise.fail(res.result().bodyAsJsonObject().getString("error"));
-                                    }
-                                }
-                                else {
-                                    promise.fail(res.cause());
-                                }
-                            });
-                }
-            });
+            System.out.println("/api/save/" + username + "/" + gameId);
+            final MultipartForm form = MultipartForm.create();
+            try {
+                form.textFileUpload("txt-file", file.getName(), file.getAbsolutePath(), "text/plain");
+            }
+            catch( Exception e ) {
+                promise.fail("file open fail");
+                return;
+            }
+            client
+                    .post("/api/save/" + username + "/" + gameId + "/" + file.getName())
+                    .bearerTokenAuthentication(SusteamSdk.token)
+                    .sendMultipartForm(form, res -> {
+                        System.out.println(res.result().body());
+                        if (res.succeeded()) {
+                            if (res.result().bodyAsJsonObject().getBoolean("success")) {
+                                promise.complete();
+                            } else {
+                                promise.fail(res.result().bodyAsJsonObject().getString("error"));
+                            }
+                        } else {
+                            promise.fail(res.cause());
+                        }
+                    });
         });
         return promise.future();
     }
@@ -172,7 +173,6 @@ public class SusteamSdk {
 //    }
 
 
-
     public static void main(String[] args) {
         SusteamSdk.init("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ", 10);
 
@@ -188,7 +188,7 @@ public class SusteamSdk {
             System.out.println(it.getUsername());
         });
         SusteamSdk.getGame(10);
-        SusteamSdk.save("C:\\Users\\yinpe\\IdeaProjects\\SUSTeam-SDK\\src\\","testfile.txt")
+        SusteamSdk.save(new File("C:\\Users\\yinpe\\IdeaProjects\\SUSTeam-SDK\\testfile.txt"))
                 .onComplete(it -> {
                     System.out.println("success");
                 });

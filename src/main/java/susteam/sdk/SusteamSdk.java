@@ -42,8 +42,6 @@ public class SusteamSdk {
                 promise.fail(result.cause());
                 return;
             }
-            //TODO can't get Chinese character
-            System.out.println(result.result().bodyAsJsonObject());
             if (result.result().bodyAsJsonObject().getBoolean("success")) {
                 Game game = GameKt.toGame(result.result().bodyAsJsonObject().getJsonObject("game"));
                 promise.complete(game);
@@ -112,7 +110,6 @@ public class SusteamSdk {
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .send( res -> {
                         if (res.succeeded()) {
-                            System.out.println(res.result().bodyAsJsonObject());
                             if (res.result().bodyAsJsonObject().getBoolean("success")) {
                                 JsonArray saves = res.result().bodyAsJsonObject().getJsonArray("gameSaves");
                                 String[] saveNames = new String[saves.size()];
@@ -152,7 +149,6 @@ public class SusteamSdk {
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .send( res -> {
                         if (res.succeeded()) {
-                            System.out.println(res.result().bodyAsJsonObject());
                             if (res.result().bodyAsJsonObject().getBoolean("success")) {
                                 promise.complete();
                             } else {
@@ -195,7 +191,6 @@ public class SusteamSdk {
                     .post("/api/save/" + username + "/" + gameId + "/" + file.getName())
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .sendMultipartForm(form, res -> {
-                        System.out.println(res.result().body());
                         if (res.succeeded()) {
                             if (res.result().bodyAsJsonObject().getBoolean("success")) {
                                 promise.complete();
@@ -248,7 +243,6 @@ public class SusteamSdk {
                     e.printStackTrace();
                     promise.fail("file error");
                 }
-//                System.out.println(res.result().body());
             });
             promise.complete();
         });
@@ -256,17 +250,17 @@ public class SusteamSdk {
     }
 
 
-    public static void main(String[] args) {
-        SusteamSdk.init("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ", 10);
-
-        SusteamSdk.isServerOnline().onComplete(it -> {
-            if (it.succeeded()) {
-                System.out.println("server is online");
-            } else {
-                System.out.println("server is not online");
-            }
-        });
-
+//    public static void main(String[] args) {
+//        SusteamSdk.init("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ", 10);
+//
+//        SusteamSdk.isServerOnline().onComplete(it -> {
+//            if (it.succeeded()) {
+//                System.out.println("server is online");
+//            } else {
+//                System.out.println("server is not online");
+//            }
+//        });
+//
 //        SusteamSdk.user().onSuccess(it -> {
 //            System.out.println(it.getUsername());
 //        });
@@ -275,9 +269,11 @@ public class SusteamSdk {
 //                .onComplete(it -> {
 //                    System.out.println("success");
 //                });
-        SusteamSdk.load("test001-10");
-        SusteamSdk.getAllGameSaveName();
-    }
+//        SusteamSdk.load("testfile.txt");
+//        SusteamSdk.getAllGameSaveName();
+//        SusteamSdk.deleteSave("test001-10");
+//        SusteamSdk.getAllGameSaveName();
+//    }
 
 
 }

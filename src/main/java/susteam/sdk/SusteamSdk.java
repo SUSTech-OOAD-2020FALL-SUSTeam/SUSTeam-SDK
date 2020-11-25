@@ -128,7 +128,41 @@ public class SusteamSdk {
                         }
 
                     });
-            promise.complete(new String[1]);
+        });
+        return promise.future();
+    }
+
+    public static Future<Void> deleteSave(String fileName) {
+        Promise<Void> promise = Promise.promise();
+        HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
+        request.send(result -> {
+            if (result.failed()) {
+                promise.fail(result.cause());
+                return;
+            }
+            Boolean token = result.result().bodyAsJsonObject().getBoolean("token");
+            if (!token) {
+                promise.fail("token invalid");
+                return;
+            }
+            User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
+            String username = user.getUsername();
+
+            client.get("/api/save/"+username+"/"+gameId+"/"+fileName+"/delete")
+                    .bearerTokenAuthentication(SusteamSdk.token)
+                    .send( res -> {
+                        if (res.succeeded()) {
+                            System.out.println(res.result().bodyAsJsonObject());
+                            if (res.result().bodyAsJsonObject().getBoolean("success")) {
+                                promise.complete();
+                            } else {
+                                promise.fail(res.result().bodyAsJsonObject().getString("error"));
+                            }
+                        } else {
+                            promise.fail(res.cause());
+                        }
+
+                    });
         });
         return promise.future();
     }

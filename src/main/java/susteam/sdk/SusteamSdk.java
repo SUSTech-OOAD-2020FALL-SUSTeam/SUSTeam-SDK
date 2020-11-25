@@ -244,12 +244,12 @@ public class SusteamSdk {
                 try {
                     file.createNewFile();
                     Files.write(file.toPath(),res.result().bodyAsBuffer().getBytes(), StandardOpenOption.WRITE);
+                    promise.complete();
                 } catch (IOException e) {
                     e.printStackTrace();
                     promise.fail("file error");
                 }
             });
-            promise.complete();
         });
         return promise.future();
     }

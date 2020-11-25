@@ -90,8 +90,8 @@ public class SusteamSdk {
         return promise.future();
     }
 
-    public static Future<String[]> getAllGameSaveName() {
-        Promise<String[]> promise = Promise.promise();
+    public static Future<GameSave[]> getAllGameSaveName() {
+        Promise<GameSave[]> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
         request.send(result -> {
             if (result.failed()) {
@@ -112,11 +112,16 @@ public class SusteamSdk {
                         if (res.succeeded()) {
                             if (res.result().bodyAsJsonObject().getBoolean("success")) {
                                 JsonArray saves = res.result().bodyAsJsonObject().getJsonArray("gameSaves");
-                                String[] saveNames = new String[saves.size()];
+                                GameSave[] gameSaves = new GameSave[saves.size()];
                                 for( int i = 0; i < saves.size(); i++ ) {
-                                    saveNames[i] = saves.getJsonObject(i).getString("saveName");
+                                    gameSaves[i] = new GameSave(
+                                            saves.getJsonObject(i).getString("username"),
+                                            saves.getJsonObject(i).getInteger("gameId"),
+                                            saves.getJsonObject(i).getString("saveName"),
+                                            saves.getJsonObject(i).getInstant("savedTime")
+                                    );
                                 }
-                                promise.complete(saveNames);
+                                promise.complete(gameSaves);
                             } else {
                                 promise.fail(res.result().bodyAsJsonObject().getString("error"));
                             }

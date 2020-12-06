@@ -15,6 +15,9 @@ import io.vertx.ext.web.multipart.MultipartForm;
 import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
@@ -322,7 +325,6 @@ public class SusteamSdk {
                     .post("/api/achievement/" + gameId)
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .sendJson(jsonObject, res -> {
-                        System.out.println(res.result().bodyAsJsonObject());
                         if (res.succeeded()) {
                             if (res.result().bodyAsJsonObject().getBoolean("success")) {
                                 promise.complete();
@@ -356,7 +358,6 @@ public class SusteamSdk {
                     .send(res -> {
                         if (res.succeeded()) {
                             if (res.result().bodyAsJsonObject().getBoolean("success")) {
-                                System.out.println(res.result().bodyAsJsonObject());
                                 JsonArray achievements = res.result().bodyAsJsonObject().getJsonArray("achievements");
                                 Achievement[] gameAchievements = new Achievement[achievements.size()];
                                 for (int i = 0; i < achievements.size(); i++) {
@@ -395,11 +396,10 @@ public class SusteamSdk {
                 return;
             }
 
-            client.get("/api/achievement/" + gameId + "/" + achievement.getAchievementName())
+            client.get("/api/achievement/" + gameId + "/" + URLEncoder.encode(achievement.getAchievementName(), StandardCharsets.UTF_8))
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .send(res -> {
                         if (res.succeeded()) {
-                            System.out.println(res.result().bodyAsJsonObject());
                             if (res.result().bodyAsJsonObject().getBoolean("success")) {
                                 JsonObject achievements = res.result().bodyAsJsonObject().getJsonObject("achievement");
                                 Achievement gameAchievement = new Achievement(
@@ -439,10 +439,9 @@ public class SusteamSdk {
             User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
             String username = user.getUsername();
 
-            client.get("/api/achieveProcess/" + username + "/" + gameId + "/" + achievement.getAchievementName())
+            client.get("/api/achieveProcess/" + username + "/" + gameId + "/" + URLEncoder.encode(achievement.getAchievementName(), StandardCharsets.UTF_8))
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .send(res -> {
-                        System.out.println(res.result().bodyAsJsonObject());
                         if (res.succeeded()) {
                             if (res.result().bodyAsJsonObject().getBoolean("success")) {
                                 promise.complete(1);
@@ -458,16 +457,16 @@ public class SusteamSdk {
         return promise.future();
     }
 
-    public static void main(String[] args) {
-        SusteamSdk.init("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ", 10);
-
-        SusteamSdk.isServerOnline().onComplete(it -> {
-            if (it.succeeded()) {
-                System.out.println("server is online");
-            } else {
-                System.out.println("server is not online");
-            }
-        });
+//    public static void main(String[] args) {
+//        SusteamSdk.init("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ", 10);
+//
+//        SusteamSdk.isServerOnline().onComplete(it -> {
+//            if (it.succeeded()) {
+//                System.out.println("server is online");
+//            } else {
+//                System.out.println("server is not online");
+//            }
+//        });
 //        SusteamSdk.addAchievement("test","test",1);
 //        SusteamSdk.user().onSuccess(it -> {
 //            System.out.println(it.getUsername());
@@ -481,13 +480,13 @@ public class SusteamSdk {
 //        SusteamSdk.getAllGameSaveName();
 //        SusteamSdk.deleteSave("test001-10");
 //        SusteamSdk.getAllGameSaveName();
-        SusteamSdk.addAchievement("小试牛刀","得到20分10次",10);
-        SusteamSdk.getAllAchievement();
-        Achievement achievement = new Achievement(gameId,1,"小试牛刀","得到20分10次",10);
-        SusteamSdk.getAchievement(achievement);
-        SusteamSdk.getUserAchievementProcess(achievement);
-        SusteamSdk.updateUserAchievementProcess("小试牛刀",10);
-
-    }
+//        SusteamSdk.addAchievement("小试牛刀","得到20分10次",10);
+//        SusteamSdk.getAllAchievement();
+//        Achievement achievement = new Achievement(gameId,1,"小试牛刀","得到20分10次",10);
+//        SusteamSdk.getAchievement(achievement);
+//        SusteamSdk.getUserAchievementProcess(achievement);
+//        SusteamSdk.updateUserAchievementProcess("小试牛刀",10);
+//
+//    }
 
 }

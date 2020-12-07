@@ -422,7 +422,7 @@ public class SusteamSdk {
         return promise.future();
     }
 
-    public static Future<Integer> getUserAchievementProcess(Achievement achievement) {
+    public static Future<Integer> getUserAchievementProcess(String achievementName) {
         Promise<Integer> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
         request.send(result -> {
@@ -439,12 +439,12 @@ public class SusteamSdk {
             User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
             String username = user.getUsername();
 
-            client.get("/api/achieveProcess/" + username + "/" + gameId + "/" + URLEncoder.encode(achievement.getAchievementName(), StandardCharsets.UTF_8))
+            client.get("/api/achieveProcess/" + username + "/" + gameId + "/" + URLEncoder.encode(achievementName, StandardCharsets.UTF_8))
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .send(res -> {
                         if (res.succeeded()) {
                             if (res.result().bodyAsJsonObject().getBoolean("success")) {
-                                promise.complete(1);
+                                promise.complete(res.result().bodyAsJsonObject().getJsonObject("userAchievementProcess").getInteger("rateOfProcess"));
                             } else {
                                 promise.fail(res.result().bodyAsJsonObject().getString("error"));
                             }
@@ -456,6 +456,7 @@ public class SusteamSdk {
         });
         return promise.future();
     }
+
 
 //    public static void main(String[] args) {
 //        SusteamSdk.init("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ", 10);
@@ -484,7 +485,7 @@ public class SusteamSdk {
 //        SusteamSdk.getAllAchievement();
 //        Achievement achievement = new Achievement(gameId,1,"小试牛刀","得到20分10次",10);
 //        SusteamSdk.getAchievement(achievement);
-//        SusteamSdk.getUserAchievementProcess(achievement);
+//        SusteamSdk.getUserAchievementProcess("小试牛刀");
 //        SusteamSdk.updateUserAchievementProcess("小试牛刀",10);
 //
 //    }

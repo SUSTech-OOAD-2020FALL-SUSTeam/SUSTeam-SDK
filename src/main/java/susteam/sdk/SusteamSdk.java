@@ -4,18 +4,14 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.multipart.MultipartForm;
-
-import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -31,14 +27,36 @@ public class SusteamSdk {
     public static String token;
     public static int gameId;
 
-    public static void init(String token, int gameId) {
+    public static void init(String token, String gameKey) {
         vertx = Vertx.vertx();
         client = WebClient.create(
                 vertx,
                 new WebClientOptions().setDefaultHost(SERVER_HOST)
         );
         SusteamSdk.token = token;
-        SusteamSdk.gameId = gameId;
+        SusteamSdk.getGameId(gameKey).onComplete(it -> {
+            if ( it.succeeded() ) {
+                SusteamSdk.gameId = it.result();
+            }
+        });
+    }
+
+    public static Future<Integer> getGameId(String gameKey) {
+        Promise<Integer> promise = Promise.promise();
+        HttpRequest<Buffer> request = client.get("/api/gameKey/" + gameId);
+        request.send(result -> {
+            if (result.failed()) {
+                promise.fail(result.cause());
+                return;
+            }
+            if (result.result().bodyAsJsonObject().getBoolean("success")) {
+                int gameId = result.result().bodyAsJsonObject().getInteger("gameId");
+                promise.complete(gameId);
+            } else {
+                promise.fail(result.result().bodyAsJsonObject().getString("error"));
+            }
+        });
+        return promise.future();
     }
 
     public static Future<Game> getGame(int gameId) {

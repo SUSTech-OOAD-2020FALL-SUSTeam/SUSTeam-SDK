@@ -26,7 +26,6 @@ public class SusteamSdk {
     public static WebClient client;
     public static String token;
     public static String gameKey;
-    public static Game game;
 
     public static void init(String token, String gameKey) {
         vertx = Vertx.vertx();
@@ -36,36 +35,11 @@ public class SusteamSdk {
         );
         SusteamSdk.token = token;
         SusteamSdk.gameKey = gameKey;
-        SusteamSdk.getGameId(gameKey).onComplete(it -> {
-            if ( it.succeeded() ) {
-                SusteamSdk.getGame(it.result()).onComplete(it2 -> {
-                    SusteamSdk.game = it2.result();
-                });
-            }
-        });
     }
 
-    public static Future<Integer> getGameId(String gameKey) {
-        Promise<Integer> promise = Promise.promise();
-        HttpRequest<Buffer> request = client.get("/api/gameKey/" + gameKey);
-        request.send(result -> {
-            if (result.failed()) {
-                promise.fail(result.cause());
-                return;
-            }
-            if (result.result().bodyAsJsonObject().getBoolean("success")) {
-                int gameId = result.result().bodyAsJsonObject().getInteger("gameId");
-                promise.complete(gameId);
-            } else {
-                promise.fail(result.result().bodyAsJsonObject().getString("error"));
-            }
-        });
-        return promise.future();
-    }
-
-    public static Future<Game> getGame(int gameId) {
+    public static Future<Game> getGame(String gameKey) {
         Promise<Game> promise = Promise.promise();
-        HttpRequest<Buffer> request = client.get("/api/game/" + gameId);
+        HttpRequest<Buffer> request = client.get("/api/gameKey/" + gameKey);
         request.send(result -> {
             if (result.failed()) {
                 promise.fail(result.cause());
@@ -135,7 +109,7 @@ public class SusteamSdk {
             User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
             String username = user.getUsername();
 
-            client.get("/api/save/" + username + "/" + game.getId())
+            client.get("/api/save/" + username + "/" + SusteamSdk.gameKey)
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .send(res -> {
                         if (res.succeeded()) {
@@ -165,35 +139,35 @@ public class SusteamSdk {
 
     public static Future<Void> deleteSave(String fileName) {
         Promise<Void> promise = Promise.promise();
-        HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
-        request.send(result -> {
-            if (result.failed()) {
-                promise.fail(result.cause());
-                return;
-            }
-            Boolean token = result.result().bodyAsJsonObject().getBoolean("token");
-            if (!token) {
-                promise.fail("token invalid");
-                return;
-            }
-            User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
-            String username = user.getUsername();
+            HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
+            request.send(result -> {
+                if (result.failed()) {
+                    promise.fail(result.cause());
+                    return;
+                }
+                Boolean token = result.result().bodyAsJsonObject().getBoolean("token");
+                if (!token) {
+                    promise.fail("token invalid");
+                    return;
+                }
+                User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
+                String username = user.getUsername();
 
-            client.get("/api/save/" + username + "/" + game.getId() + "/" + fileName + "/delete")
-                    .bearerTokenAuthentication(SusteamSdk.token)
-                    .send(res -> {
-                        if (res.succeeded()) {
-                            if (res.result().bodyAsJsonObject().getBoolean("success")) {
-                                promise.complete();
+                client.get("/api/save/" + username + "/" + SusteamSdk.gameKey + "/" + fileName + "/delete")
+                        .bearerTokenAuthentication(SusteamSdk.token)
+                        .send(res -> {
+                            if (res.succeeded()) {
+                                if (res.result().bodyAsJsonObject().getBoolean("success")) {
+                                    promise.complete();
+                                } else {
+                                    promise.fail(res.result().bodyAsJsonObject().getString("error"));
+                                }
                             } else {
-                                promise.fail(res.result().bodyAsJsonObject().getString("error"));
+                                promise.fail(res.cause());
                             }
-                        } else {
-                            promise.fail(res.cause());
-                        }
 
-                    });
-        });
+                        });
+            });
         return promise.future();
     }
 
@@ -221,7 +195,7 @@ public class SusteamSdk {
                 return;
             }
             client
-                    .post("/api/save/" + username + "/" + game.getId() + "/" + file.getName())
+                    .post("/api/save/" + username + "/" + SusteamSdk.gameKey + "/" + file.getName())
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .sendMultipartForm(form, res -> {
                         if (res.succeeded()) {
@@ -242,41 +216,49 @@ public class SusteamSdk {
     public static Future<File> load(String fileName) {
 
         Promise<File> promise = Promise.promise();
-        HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
-        request.send(result -> {
-            if (result.failed()) {
-                promise.fail(result.cause());
+
+        SusteamSdk.getGame(SusteamSdk.gameKey).onComplete(it -> {
+            if (it.failed()) {
+                promise.fail(it.cause());
                 return;
             }
-            Boolean token = result.result().bodyAsJsonObject().getBoolean("token");
-            if (!token) {
-                promise.fail("token invalid");
-                return;
-            }
-
-            User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
-            String username = user.getUsername();
-            HttpRequest<Buffer> loadRequest =
-                    client.get("/api/save/" + username + "/" + game.getId() + "/" + fileName)
-                            .bearerTokenAuthentication(SusteamSdk.token);
-
-            loadRequest.send(res -> {
-                if (res.failed()) {
-                    promise.fail(res.cause());
+            Game game = it.result();
+            HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
+            request.send(result -> {
+                if (result.failed()) {
+                    promise.fail(result.cause());
                     return;
                 }
-                File dir = new File(System.getProperty("java.io.tmpdir") + "susteam/sdk/" + game.getId());
-                dir.mkdirs();
-                File file = new File(dir + "/" + fileName);
-
-                try {
-                    file.createNewFile();
-                    Files.write(file.toPath(), res.result().bodyAsBuffer().getBytes(), StandardOpenOption.WRITE);
-                    promise.complete();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    promise.fail("file error");
+                Boolean token = result.result().bodyAsJsonObject().getBoolean("token");
+                if (!token) {
+                    promise.fail("token invalid");
+                    return;
                 }
+
+                User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
+                String username = user.getUsername();
+                HttpRequest<Buffer> loadRequest =
+                        client.get("/api/save/" + username + "/" + SusteamSdk.gameKey + "/" + fileName)
+                                .bearerTokenAuthentication(SusteamSdk.token);
+
+                loadRequest.send(res -> {
+                    if (res.failed()) {
+                        promise.fail(res.cause());
+                        return;
+                    }
+                    File dir = new File(System.getProperty("java.io.tmpdir") + "susteam/sdk/" + game.getId());
+                    dir.mkdirs();
+                    File file = new File(dir + "/" + fileName);
+
+                    try {
+                        file.createNewFile();
+                        Files.write(file.toPath(), res.result().bodyAsBuffer().getBytes(), StandardOpenOption.WRITE);
+                        promise.complete();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        promise.fail("file error");
+                    }
+                });
             });
         });
         return promise.future();
@@ -344,7 +326,7 @@ public class SusteamSdk {
             jsonObject.put("achievementCount", achievementCount);
 
             client
-                    .post("/api/achievement/" + game.getId())
+                    .post("/api/achievement/" + SusteamSdk.gameKey)
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .sendJson(jsonObject, res -> {
                         if (res.succeeded()) {
@@ -375,7 +357,7 @@ public class SusteamSdk {
                 return;
             }
 
-            client.get("/api/achievement/" + game.getId())
+            client.get("/api/achievement/" + SusteamSdk.gameKey)
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .send(res -> {
                         if (res.succeeded()) {
@@ -418,7 +400,7 @@ public class SusteamSdk {
                 return;
             }
 
-            client.get("/api/achievement/" + game.getId() + "/" + URLEncoder.encode(achievement.getAchievementName(), StandardCharsets.UTF_8))
+            client.get("/api/achievement/" + SusteamSdk.gameKey + "/" + URLEncoder.encode(achievement.getAchievementName(), StandardCharsets.UTF_8))
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .send(res -> {
                         if (res.succeeded()) {
@@ -461,7 +443,7 @@ public class SusteamSdk {
             User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
             String username = user.getUsername();
 
-            client.get("/api/achieveProcess/" + username + "/" + game.getId() + "/" + URLEncoder.encode(achievementName, StandardCharsets.UTF_8))
+            client.get("/api/achieveProcess/" + username + "/" + SusteamSdk.gameKey + "/" + URLEncoder.encode(achievementName, StandardCharsets.UTF_8))
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .send(res -> {
                         if (res.succeeded()) {
@@ -508,8 +490,9 @@ public class SusteamSdk {
 
     public static Future<Void> invite(String friendName) {
         Promise<Void> promise = Promise.promise();
-        HttpRequest<Buffer> request = client.get("/api/friend/invite/" + friendName + "/" + game.getName()).bearerTokenAuthentication(token);
+        HttpRequest<Buffer> request = client.get("/api/friend/invite/" + friendName + "/" + SusteamSdk.gameKey).bearerTokenAuthentication(token);
         request.send(result -> {
+            System.out.println(result.result().bodyAsJsonObject());
             if (result.failed()) {
                 promise.fail(result.cause());
                 return;
@@ -523,18 +506,19 @@ public class SusteamSdk {
         return promise.future();
     }
 
-//    public static void main(String[] args) {
-//        SusteamSdk.init(
-//                "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ",
-//                "o6cf3Wd9OXOvzq9pRdBB4EeYBpimP0X1WwFBSOgLpajJ3MutNmsVWjDWjX5Vz8bVavbix4Ya2gyDVLHNgjIX3toZKOkuVkAM8sMMD");
-//
-//        SusteamSdk.isServerOnline().onComplete(it -> {
-//            if (it.succeeded()) {
-//                System.out.println("server is online");
-//            } else {
-//                System.out.println("server is not online");
-//            }
-//        });
+    public static void main(String[] args) {
+        SusteamSdk.init(
+                "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ",
+                "o6cf3Wd9OXOvzq9pRdBB4EeYBpimP0X1WwFBSOgLpajJ3MutNmsVWjDWjX5Vz8bVavbix4Ya2gyDVLHNgjIX3toZKOkuVkAM8sMMD");
+
+        SusteamSdk.isServerOnline().onComplete(it -> {
+            if (it.succeeded()) {
+                System.out.println("server is online");
+            } else {
+                System.out.println("server is not online");
+            }
+        });
+        SusteamSdk.invite("yinpeiqi");
 //        SusteamSdk.addAchievement("test","test",1);
 //        SusteamSdk.user().onSuccess(it -> {
 //            System.out.println(it.getUsername());
@@ -554,7 +538,7 @@ public class SusteamSdk {
 //        SusteamSdk.getAchievement(achievement);
 //        SusteamSdk.getUserAchievementProcess("小试牛刀");
 //        SusteamSdk.updateUserAchievementProcess("小试牛刀",10);
-//
-//    }
+
+    }
 
 }

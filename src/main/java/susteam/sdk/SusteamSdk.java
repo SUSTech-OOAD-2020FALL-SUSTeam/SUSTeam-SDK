@@ -26,6 +26,7 @@ public class SusteamSdk {
     public static WebClient client;
     public static String token;
     public static int gameId;
+    public static String gameKey;
 
     public static void init(String token, String gameKey) {
         vertx = Vertx.vertx();
@@ -34,6 +35,7 @@ public class SusteamSdk {
                 new WebClientOptions().setDefaultHost(SERVER_HOST)
         );
         SusteamSdk.token = token;
+        SusteamSdk.gameKey = gameKey;
         SusteamSdk.getGameId(gameKey).onComplete(it -> {
             if ( it.succeeded() ) {
                 SusteamSdk.gameId = it.result();
@@ -302,7 +304,7 @@ public class SusteamSdk {
             jsonObject.put("rateOfProcess", rateOfProcess);
 
             client
-                    .post("/api/achieveProcess/" + gameId)
+                    .post("/api/achieveProcess/" + gameKey)
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .sendJson(jsonObject, res -> {
                         if (res.succeeded()) {

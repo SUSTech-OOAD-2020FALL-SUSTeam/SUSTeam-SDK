@@ -479,7 +479,7 @@ public class SusteamSdk {
         return promise.future();
     }
 
-    public static Future<Friend[]> getFriends() {
+    public static Future<Friend[]> friends() {
         Promise<Friend[]> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/friend").bearerTokenAuthentication(token);
         request.send(result -> {
@@ -506,7 +506,7 @@ public class SusteamSdk {
         return promise.future();
     }
 
-    public static Future<Void> inviteFriend(String friendName) {
+    public static Future<Void> invite(String friendName) {
         Promise<Void> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/friend/invite/" + friendName + "/" + game.getName()).bearerTokenAuthentication(token);
         request.send(result -> {

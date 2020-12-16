@@ -10,6 +10,8 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.multipart.MultipartForm;
+
+import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -461,6 +463,137 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    public static Future<Record[]> getRank(int rankNum) {
+        Promise<Record[]> promise = Promise.promise();
+
+        HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
+        request.send(result -> {
+            if (result.failed()) {
+                promise.fail(result.cause());
+                return;
+            }
+            Boolean token = result.result().bodyAsJsonObject().getBoolean("token");
+            if (!token) {
+                promise.fail("token invalid");
+                return;
+            }
+
+            User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
+            String username = user.getUsername();
+
+            client.get("/api/record/" + SusteamSdk.gameKey + "/" + rankNum)
+                    .bearerTokenAuthentication(SusteamSdk.token)
+                    .send(res -> {
+                        if (res.succeeded()) {
+                            if (res.result().bodyAsJsonObject().getBoolean("success")) {
+                                JsonArray records = res.result().bodyAsJsonObject().getJsonArray("records");
+                                Record[] gameRecords = new Record[records.size()];
+                                for (int i = 0; i < records.size(); i++) {
+                                    gameRecords[i] = new Record(
+                                            records.getJsonObject(i).getInteger("recordId"),
+                                            records.getJsonObject(i).getInteger("gameId"),
+                                            records.getJsonObject(i).getString("username"),
+                                            records.getJsonObject(i).getInteger("score")
+                                    );
+                                }
+                                promise.complete(gameRecords);
+                            } else {
+                                promise.fail(res.result().bodyAsJsonObject().getString("error"));
+                            }
+                        } else {
+                            promise.fail(res.cause());
+                        }
+
+                    });
+        });
+        return promise.future();
+    }
+
+
+    public static Future<Integer> getUserMaxScore() {
+        Promise<Integer> promise = Promise.promise();
+
+        HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
+        request.send(result -> {
+            if (result.failed()) {
+                promise.fail(result.cause());
+                return;
+            }
+            Boolean token = result.result().bodyAsJsonObject().getBoolean("token");
+            if (!token) {
+                promise.fail("token invalid");
+                return;
+            }
+
+            User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
+            String username = user.getUsername();
+
+            client.get("/api/record/max/" + SusteamSdk.gameKey + "/" + username)
+                    .bearerTokenAuthentication(SusteamSdk.token)
+                    .send(res -> {
+                        if (res.succeeded()) {
+                            if (res.result().bodyAsJsonObject().getBoolean("success")) {
+                                JsonObject jsonObject = res.result().bodyAsJsonObject().getJsonObject("record");
+                                Record record = new Record(
+                                            jsonObject.getInteger("recordId"),
+                                            jsonObject.getInteger("gameId"),
+                                            jsonObject.getString("username"),
+                                            jsonObject.getInteger("score")
+                                    );
+                                promise.complete(record.getScore());
+                            } else {
+                                promise.fail(res.result().bodyAsJsonObject().getString("error"));
+                            }
+                        } else {
+                       promise.fail(res.cause());
+                        }
+
+                    });
+        });
+        return promise.future();
+    }
+
+    public static Future<Void> addRecord(int score) {
+
+        Promise<Void> promise = Promise.promise();
+        HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
+        request.send(result -> {
+            if (result.failed()) {
+                promise.fail(result.cause());
+                return;
+            }
+            Boolean token = result.result().bodyAsJsonObject().getBoolean("token");
+            if (!token) {
+                promise.fail("token invalid");
+                return;
+            }
+
+            User user = UserKt.toUser(result.result().bodyAsJsonObject().getJsonObject("userRole"));
+            String username = user.getUsername();
+
+            JsonObject jsonObject = new JsonObject();
+            jsonObject.put("username", username);
+            jsonObject.put("score", score);
+
+            client
+                    .post("/api/record/" + gameKey)
+                    .bearerTokenAuthentication(SusteamSdk.token)
+                    .sendJson(jsonObject, res -> {
+                        if (res.succeeded()) {
+                            if (res.result().bodyAsJsonObject().getBoolean("success")) {
+                                promise.complete();
+                            } else {
+                                promise.fail(res.result().bodyAsJsonObject().getString("error"));
+                            }
+                        } else {
+                            promise.fail(res.cause());
+                        }
+                    });
+        });
+        return promise.future();
+    }
+
+
     public static Future<Friend[]> friends() {
         Promise<Friend[]> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/friend").bearerTokenAuthentication(token);
@@ -492,7 +625,6 @@ public class SusteamSdk {
         Promise<Void> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/friend/invite/" + friendName + "/" + SusteamSdk.gameKey).bearerTokenAuthentication(token);
         request.send(result -> {
-            System.out.println(result.result().bodyAsJsonObject());
             if (result.failed()) {
                 promise.fail(result.cause());
                 return;
@@ -506,19 +638,20 @@ public class SusteamSdk {
         return promise.future();
     }
 
-    public static void main(String[] args) {
-        SusteamSdk.init(
-                "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ",
-                "o6cf3Wd9OXOvzq9pRdBB4EeYBpimP0X1WwFBSOgLpajJ3MutNmsVWjDWjX5Vz8bVavbix4Ya2gyDVLHNgjIX3toZKOkuVkAM8sMMD");
+//    public static void main(String[] args) {
+//        SusteamSdk.init(
+//                "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ",
+//                "o6cf3Wd9OXOvzq9pRdBB4EeYBpimP0X1WwFBSOgLpajJ3MutNmsVWjDWjX5Vz8bVavbix4Ya2gyDVLHNgjIX3toZKOkuVkAM8sMMD");
+//
+//        SusteamSdk.isServerOnline().onComplete(it -> {
+//            if (it.succeeded()) {
+//                System.out.println("server is online");
+//            } else {
+//                System.out.println("server is not online");
+//            }
+//        });
 
-        SusteamSdk.isServerOnline().onComplete(it -> {
-            if (it.succeeded()) {
-                System.out.println("server is online");
-            } else {
-                System.out.println("server is not online");
-            }
-        });
-        SusteamSdk.invite("yinpeiqi");
+//        SusteamSdk.invite("yinpeiqi");
 //        SusteamSdk.addAchievement("test","test",1);
 //        SusteamSdk.user().onSuccess(it -> {
 //            System.out.println(it.getUsername());
@@ -539,6 +672,10 @@ public class SusteamSdk {
 //        SusteamSdk.getUserAchievementProcess("小试牛刀");
 //        SusteamSdk.updateUserAchievementProcess("小试牛刀",10);
 
-    }
+//        SusteamSdk.addRecord(1055);
+//        SusteamSdk.getUserMaxScore();
+//        SusteamSdk.getRank(10);
+//
+//    }
 
 }

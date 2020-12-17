@@ -29,6 +29,12 @@ public class SusteamSdk {
     public static String token;
     public static String gameKey;
 
+    /**
+     * init sdk
+     *
+     * @param token user token
+     * @param gameKey key of the game, provided when create came
+     */
     public static void init(String token, String gameKey) {
         vertx = Vertx.vertx();
         client = WebClient.create(
@@ -621,6 +627,40 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    public static Future<Friend[]> gameFriends() {
+        Promise<Friend[]> promise = Promise.promise();
+        SusteamSdk.getGame(SusteamSdk.gameKey).onComplete(it -> {
+            if (it.failed()) {
+                promise.fail(it.cause());
+                return;
+            }
+            Game game = it.result();
+            HttpRequest<Buffer> request = client.get("/api/friend/" + game.getId()).bearerTokenAuthentication(token);
+            request.send(result -> {
+                if (result.failed()) {
+                    promise.fail(result.cause());
+                    return;
+                }
+
+                if (result.result().bodyAsJsonObject().getBoolean("success")) {
+                    JsonArray jsonObjectFriends = result.result().bodyAsJsonObject().getJsonArray("friends");
+                    Friend[] friends = new Friend[jsonObjectFriends.size()];
+                    for (int i = 0; i < jsonObjectFriends.size(); i++) {
+                        friends[i] = new Friend(
+                                jsonObjectFriends.getJsonObject(i).getString("username"),
+                                jsonObjectFriends.getJsonObject(i).getBoolean("online"),
+                                jsonObjectFriends.getJsonObject(i).getInstant("lastSeen")
+                        );
+                    }
+                    promise.complete(friends);
+                } else {
+                    promise.fail(result.result().bodyAsJsonObject().getString("error"));
+                }
+            });
+        });
+        return promise.future();
+    }
+
     public static Future<Void> invite(String friendName) {
         Promise<Void> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/friend/invite/" + friendName + "/" + SusteamSdk.gameKey).bearerTokenAuthentication(token);
@@ -661,16 +701,7 @@ public class SusteamSdk {
 //                .onComplete(it -> {
 //                    System.out.println("success");
 //                });
-//        SusteamSdk.load("testfile.txt");
-//        SusteamSdk.getAllGameSaveName();
-//        SusteamSdk.deleteSave("test001-10");
-//        SusteamSdk.getAllGameSaveName();
-//        SusteamSdk.addAchievement("小试牛刀","得到20分10次",10);
-//        SusteamSdk.getAllAchievement();
-//        Achievement achievement = new Achievement(gameId,1,"小试牛刀","得到20分10次",10);
-//        SusteamSdk.getAchievement(achievement);
-//        SusteamSdk.getUserAchievementProcess("小试牛刀");
-//        SusteamSdk.updateUserAchievementProcess("小试牛刀",10);
+
 
 //        SusteamSdk.addRecord(1055);
 //        SusteamSdk.getUserMaxScore();

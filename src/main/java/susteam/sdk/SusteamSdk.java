@@ -11,7 +11,6 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.multipart.MultipartForm;
 
-import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -22,18 +21,18 @@ import java.nio.file.StandardOpenOption;
 
 public class SusteamSdk {
 
-    public static final String SERVER_HOST = "susteam.gogo.moe";
+    private static final String SERVER_HOST = "susteam.gogo.moe";
 
-    public static Vertx vertx;
-    public static WebClient client;
-    public static String token;
-    public static String gameKey;
+    private static Vertx vertx;
+    private static WebClient client;
+    private static String token;
+    private static String gameKey;
 
     /**
-     * init sdk
+     * Init sdk
      *
-     * @param token user token
-     * @param gameKey key of the game, provided when create came
+     * @param token User token
+     * @param gameKey Key of the game, provided when create came
      */
     public static void init(String token, String gameKey) {
         vertx = Vertx.vertx();
@@ -45,9 +44,14 @@ public class SusteamSdk {
         SusteamSdk.gameKey = gameKey;
     }
 
-    public static Future<Game> getGame(String gameKey) {
+    /**
+     * Get game's information
+     *
+     * @return If success, return Game's information, include gameId, name, author, publishTime, introduction and description
+     */
+    public static Future<Game> getGame() {
         Promise<Game> promise = Promise.promise();
-        HttpRequest<Buffer> request = client.get("/api/gameKey/" + gameKey);
+        HttpRequest<Buffer> request = client.get("/api/gameKey/" + SusteamSdk.gameKey);
         request.send(result -> {
             if (result.failed()) {
                 promise.fail(result.cause());
@@ -63,6 +67,11 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Judge whether server is online
+     *
+     * @return Success means server is online
+     */
     public static Future<Void> isServerOnline() {
         Promise<Void> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
@@ -81,6 +90,11 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Method that return detail information of user
+     *
+     * @return User, contains username, mail, avatar, description
+     */
     public static Future<User> user() {
         Promise<User> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
@@ -101,6 +115,11 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Method that return all game saves' name of user in this game
+     *
+     * @return All game saves' name
+     */
     public static Future<GameSave[]> getAllGameSaveName() {
         Promise<GameSave[]> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
@@ -145,6 +164,12 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Delete a game save
+     *
+     * @param fileName The game save's file name
+     * @return Void
+     */
     public static Future<Void> deleteSave(String fileName) {
         Promise<Void> promise = Promise.promise();
             HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
@@ -179,6 +204,12 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Save a file. The file should first be saved in local dir, then pass the file to server
+     *
+     * @param file File need to be saved
+     * @return Void
+     */
     public static Future<Void> save(File file) {
 
         Promise<Void> promise = Promise.promise();
@@ -220,12 +251,17 @@ public class SusteamSdk {
         return promise.future();
     }
 
-
+    /**
+     * Load a file from server
+     *
+     * @param fileName The file name need to load from server
+     * @return File loaded from server
+     */
     public static Future<File> load(String fileName) {
 
         Promise<File> promise = Promise.promise();
 
-        SusteamSdk.getGame(SusteamSdk.gameKey).onComplete(it -> {
+        SusteamSdk.getGame().onComplete(it -> {
             if (it.failed()) {
                 promise.fail(it.cause());
                 return;
@@ -272,7 +308,13 @@ public class SusteamSdk {
         return promise.future();
     }
 
-
+    /**
+     * Update operation to a achievement
+     *
+     * @param achievementName The achievement name
+     * @param rateOfProcess User current process
+     * @return Void
+     */
     public static Future<Void> updateUserAchievementProcess(String achievementName, int rateOfProcess) {
 
         Promise<Void> promise = Promise.promise();
@@ -313,6 +355,14 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Add a achievement to this game
+     *
+     * @param achievementName The name of achievement
+     * @param description Description of achievement
+     * @param achievementCount Total count need to finished
+     * @return Void
+     */
     public static Future<Void> addAchievement(String achievementName, String description, int achievementCount) {
 
         Promise<Void> promise = Promise.promise();
@@ -351,6 +401,11 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Method that return all achievements of this game
+     *
+     * @return Achievements of this game
+     */
     public static Future<Achievement[]> getAllAchievement() {
         Promise<Achievement[]> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
@@ -394,7 +449,13 @@ public class SusteamSdk {
         return promise.future();
     }
 
-    public static Future<Achievement> getAchievement(Achievement achievement) {
+    /**
+     * Return the information of achievement
+     *
+     * @param achievementName Name of achievement
+     * @return Information of achievement
+     */
+    public static Future<Achievement> achievement(String achievementName) {
         Promise<Achievement> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
         request.send(result -> {
@@ -408,7 +469,7 @@ public class SusteamSdk {
                 return;
             }
 
-            client.get("/api/achievement/" + SusteamSdk.gameKey + "/" + URLEncoder.encode(achievement.getAchievementName(), StandardCharsets.UTF_8))
+            client.get("/api/achievement/" + SusteamSdk.gameKey + "/" + URLEncoder.encode(achievementName, StandardCharsets.UTF_8))
                     .bearerTokenAuthentication(SusteamSdk.token)
                     .send(res -> {
                         if (res.succeeded()) {
@@ -434,6 +495,12 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Get user current process of this achievement
+     *
+     * @param achievementName Name of achievement
+     * @return User process of this achievement
+     */
     public static Future<Integer> getUserAchievementProcess(String achievementName) {
         Promise<Integer> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/token").bearerTokenAuthentication(token);
@@ -469,6 +536,12 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Get the rank
+     *
+     * @param rankNum Number of rank need to return
+     * @return Records
+     */
     public static Future<Record[]> getRank(int rankNum) {
         Promise<Record[]> promise = Promise.promise();
 
@@ -516,6 +589,11 @@ public class SusteamSdk {
     }
 
 
+    /**
+     * Get the max score of user
+     *
+     * @return Max score of user
+     */
     public static Future<Integer> getUserMaxScore() {
         Promise<Integer> promise = Promise.promise();
 
@@ -559,6 +637,12 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Upload an record, which is an Integer
+     *
+     * @param score The record need to upload
+     * @return Void
+     */
     public static Future<Void> addRecord(int score) {
 
         Promise<Void> promise = Promise.promise();
@@ -600,6 +684,11 @@ public class SusteamSdk {
     }
 
 
+    /**
+     * Get all friends of user
+     *
+     * @return A list of user's friends in SUSTeam
+     */
     public static Future<Friend[]> friends() {
         Promise<Friend[]> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/friend").bearerTokenAuthentication(token);
@@ -627,9 +716,14 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Get friends of user that already bought this game
+     *
+     * @return A list of user's friends in SUSTeam who have already bought this game
+     */
     public static Future<Friend[]> gameFriends() {
         Promise<Friend[]> promise = Promise.promise();
-        SusteamSdk.getGame(SusteamSdk.gameKey).onComplete(it -> {
+        SusteamSdk.getGame().onComplete(it -> {
             if (it.failed()) {
                 promise.fail(it.cause());
                 return;
@@ -661,6 +755,12 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Send an invite message to friend
+     *
+     * @param friendName Name of the friend, who must online
+     * @return Void
+     */
     public static Future<Void> invite(String friendName) {
         Promise<Void> promise = Promise.promise();
         HttpRequest<Buffer> request = client.get("/api/friend/invite/" + friendName + "/" + SusteamSdk.gameKey).bearerTokenAuthentication(token);

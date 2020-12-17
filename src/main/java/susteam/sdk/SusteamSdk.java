@@ -32,7 +32,8 @@ public class SusteamSdk {
      * Init sdk
      *
      * @param token User token
-     * @param gameKey Key of the game, provided when create came
+     *
+     * @param gameKey Key of the game, provided when creating a game
      */
     public static void init(String token, String gameKey) {
         vertx = Vertx.vertx();
@@ -45,9 +46,10 @@ public class SusteamSdk {
     }
 
     /**
-     * Get game's information
+     * Get Game Future (including fields: gameId, name, author,
+     * publishTime, introduction and description) according to the game key
      *
-     * @return If success, return Game's information, include gameId, name, author, publishTime, introduction and description
+     * @return the future
      */
     public static Future<Game> getGame() {
         Promise<Game> promise = Promise.promise();
@@ -68,9 +70,11 @@ public class SusteamSdk {
     }
 
     /**
-     * Judge whether server is online
+     * Create a void future whether server is online
      *
-     * @return Success means server is online
+     * Server is online if the future is succeeded.
+     *
+     * @return the future
      */
     public static Future<Void> isServerOnline() {
         Promise<Void> promise = Promise.promise();
@@ -91,9 +95,10 @@ public class SusteamSdk {
     }
 
     /**
-     * Method that return detail information of user
+     * Get User Future (User, contains username, mail,
+     * avatar, description) according to current user
      *
-     * @return User, contains username, mail, avatar, description
+     * @return the future
      */
     public static Future<User> user() {
         Promise<User> promise = Promise.promise();
@@ -116,9 +121,9 @@ public class SusteamSdk {
     }
 
     /**
-     * Method that return all game saves' name of user in this game
+     * Get GameSave Array Future including all game saves of current user in game
      *
-     * @return All game saves' name
+     * @return the future
      */
     public static Future<GameSave[]> getAllGameSaveName() {
         Promise<GameSave[]> promise = Promise.promise();
@@ -165,10 +170,13 @@ public class SusteamSdk {
     }
 
     /**
-     * Delete a game save
+     * Delete a game save and return a void future.
      *
-     * @param fileName The game save's file name
-     * @return Void
+     * Delete successfully if the future is succeeded.
+     *
+     * @param fileName The file name of a game save
+     *
+     * @return A void future
      */
     public static Future<Void> deleteSave(String fileName) {
         Promise<Void> promise = Promise.promise();
@@ -205,10 +213,13 @@ public class SusteamSdk {
     }
 
     /**
-     * Save a file. The file should first be saved in local dir, then pass the file to server
+     * Save a file and return a void future. The file should first be saved in local dir, then pass the file to server.
+     *
+     * Save successfully if the future is succeeded.
      *
      * @param file File need to be saved
-     * @return Void
+     *
+     * @return A void future
      */
     public static Future<Void> save(File file) {
 
@@ -252,10 +263,13 @@ public class SusteamSdk {
     }
 
     /**
-     * Load a file from server
+     * Load a file and return a void future
+     *
+     * Load successfully if the future is succeeded.
      *
      * @param fileName The file name need to load from server
-     * @return File loaded from server
+     *
+     * @return the future
      */
     public static Future<File> load(String fileName) {
 
@@ -309,11 +323,16 @@ public class SusteamSdk {
     }
 
     /**
-     * Update operation to a achievement
+     * Update an achievement in the game and return a void future
+     *
+     * Update successfully if the future is succeeded.
      *
      * @param achievementName The achievement name
+     *
      * @param rateOfProcess User current process
-     * @return Void
+     *
+     * @return the future
+     *
      */
     public static Future<Void> updateUserAchievementProcess(String achievementName, int rateOfProcess) {
 
@@ -356,11 +375,16 @@ public class SusteamSdk {
     }
 
     /**
-     * Add a achievement to this game
+     * Add an achievement in the game and return a void future
+     *
+     * Add successfully if the future is succeeded.
      *
      * @param achievementName The name of achievement
+     *
      * @param description Description of achievement
+     *
      * @param achievementCount Total count need to finished
+     *
      * @return Void
      */
     public static Future<Void> addAchievement(String achievementName, String description, int achievementCount) {
@@ -402,9 +426,9 @@ public class SusteamSdk {
     }
 
     /**
-     * Method that return all achievements of this game
+     * Get Achievement Array Future including all achievements of current user in game
      *
-     * @return Achievements of this game
+     * @return the future
      */
     public static Future<Achievement[]> getAllAchievement() {
         Promise<Achievement[]> promise = Promise.promise();
@@ -450,10 +474,11 @@ public class SusteamSdk {
     }
 
     /**
-     * Return the information of achievement
+     * Get Achievement Future according to achievementName of current user
      *
      * @param achievementName Name of achievement
-     * @return Information of achievement
+     *
+     * @return the future
      */
     public static Future<Achievement> achievement(String achievementName) {
         Promise<Achievement> promise = Promise.promise();
@@ -496,10 +521,11 @@ public class SusteamSdk {
     }
 
     /**
-     * Get user current process of this achievement
+     * Get an Integer future representing current process of this achievement in the game
      *
      * @param achievementName Name of achievement
-     * @return User process of this achievement
+     *
+     * @return the future
      */
     public static Future<Integer> getUserAchievementProcess(String achievementName) {
         Promise<Integer> promise = Promise.promise();
@@ -537,10 +563,12 @@ public class SusteamSdk {
     }
 
     /**
-     * Get the rank
+     * Get Record Array Future representing the records whose score are
+     * in rank of the game
      *
-     * @param rankNum Number of rank need to return
-     * @return Records
+     * @param rankNum Number of records
+     *
+     * @return the future
      */
     public static Future<Record[]> getRank(int rankNum) {
         Promise<Record[]> promise = Promise.promise();
@@ -590,9 +618,9 @@ public class SusteamSdk {
 
 
     /**
-     * Get the max score of user
+     * Get Integer Future representing the max score of current user in the game
      *
-     * @return Max score of user
+     * @return the future
      */
     public static Future<Integer> getUserMaxScore() {
         Promise<Integer> promise = Promise.promise();
@@ -638,10 +666,13 @@ public class SusteamSdk {
     }
 
     /**
-     * Upload an record, which is an Integer
+     * Upload a score record and return a void future.
+     *
+     * Upload successfully if the future is succeeded.
      *
      * @param score The record need to upload
-     * @return Void
+     *
+     * @return the future
      */
     public static Future<Void> addRecord(int score) {
 
@@ -685,9 +716,9 @@ public class SusteamSdk {
 
 
     /**
-     * Get all friends of user
+     * Get Friend Array Future representing all friends of current user
      *
-     * @return A list of user's friends in SUSTeam
+     * @return the future
      */
     public static Future<Friend[]> friends() {
         Promise<Friend[]> promise = Promise.promise();
@@ -717,9 +748,10 @@ public class SusteamSdk {
     }
 
     /**
-     * Get friends of user that already bought this game
+     * Get Friend Array Future representing all friends of current user
+     * who who have already bought this game
      *
-     * @return A list of user's friends in SUSTeam who have already bought this game
+     * @return the future
      */
     public static Future<Friend[]> gameFriends() {
         Promise<Friend[]> promise = Promise.promise();
@@ -756,10 +788,13 @@ public class SusteamSdk {
     }
 
     /**
-     * Send an invite message to friend
+     * Send an invite message to friend and return a void future.
+     *
+     * Send successfully if the future is succeeded.
      *
      * @param friendName Name of the friend, who must online
-     * @return Void
+     *
+     * @return the future
      */
     public static Future<Void> invite(String friendName) {
         Promise<Void> promise = Promise.promise();

@@ -813,6 +813,28 @@ public class SusteamSdk {
         return promise.future();
     }
 
+    /**
+     * Check whether user have bought the game
+     *
+     * @param gameKey Game key of the game
+     * @return Whether user have bought it
+     */
+    public static Future<Boolean> checkBought(String gameKey) {
+        Promise<Boolean> promise = Promise.promise();
+        HttpRequest<Buffer> request = client.get("/api/check/key/" + gameKey).bearerTokenAuthentication(token);
+        request.send(result -> {
+            if (result.failed()) {
+                promise.fail(result.cause());
+                return;
+            }
+            if (result.result().bodyAsJsonObject().getBoolean("success")) {
+                promise.complete(result.result().bodyAsJsonObject().getBoolean("bought"));
+            } else {
+                promise.fail(result.result().bodyAsJsonObject().getString("error"));
+            }
+        });
+        return promise.future();
+    }
 //    public static void main(String[] args) {
 //        SusteamSdk.init(
 //                "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VybmFtZSI6InRlc3QwMDEiLCJwZXJtaXNzaW9ucyI6W10sImlhdCI6MTYwNTcwNzIxNn0.jo9VGmhssPLcKBvU2RfQOGTIsPnd1g-t5LD2ZI-ftqmEBJY06I0a5_kXN1Qc31AoUSwDNEp3JLY0Xku0-faw1DQGOSUUJLKf2wnvzY-36ZoGgVDgZEVgwfKuTyGL-uLuJevV3o4CBpcWx4XdJ0sbogx2oAszV1MR6n7bvSyIjPu368-cdRK4qZ_5Yrk9vfb88D8bH8SGR7AC7JINZam7YnFenk-0DDRDztYaQCgQn356Fz29Lzke3DOXw7gSQm1KPP2MQVJrCkUuZdPckl9PCCN7lj8xm8RM0C0H8B7ozp22qHhztqbcBRW0hXtycSlQ3k-QjdTv5P31_pZGwF7TxQ",
@@ -825,7 +847,8 @@ public class SusteamSdk {
 //                System.out.println("server is not online");
 //            }
 //        });
-
+//
+//        SusteamSdk.gameFriends();
 //        SusteamSdk.invite("yinpeiqi");
 //        SusteamSdk.addAchievement("test","test",1);
 //        SusteamSdk.user().onSuccess(it -> {
@@ -836,8 +859,8 @@ public class SusteamSdk {
 //                .onComplete(it -> {
 //                    System.out.println("success");
 //                });
-
-
+//
+//
 //        SusteamSdk.addRecord(1055);
 //        SusteamSdk.getUserMaxScore();
 //        SusteamSdk.getRank(10);
